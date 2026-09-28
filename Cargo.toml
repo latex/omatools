@@ -1,0 +1,24 @@
+[package]
+name = "omatools"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "A suite of high-performance desktop productivity utilities for Omarchy / Hyprland (Linux Wayland)"
+authors = ["Leandro Teixeira <leandro.tex@outlook.com>"]
+repository = "https://github.com/latex/omatools"
+readme = "README.md"
+keywords = ["hyprland", "wayland", "omarchy", "powertoys", "productivity"]
+categories = ["command-line-utilities", "os::unix-apis"]
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "cargo"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.43", features = ["full"] }
+anyhow = "1.0"
+thiserror = "2.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tempfile = "3.17"

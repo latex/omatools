@@ -1,19 +1,20 @@
-# OmaTools Makefile
-# Compilador e Linker para binários nativos em Assembly x86_64
+# OmaTools Makefile (Rust)
 
-AS = as
-LD = ld
-ASFLAGS = --64
-LDFLAGS = -s
+.PHONY: all build test clean run
 
-all: bin/oma-test
+all: build
 
-bin/oma-test: src/test.s
-	@mkdir -p bin
-	$(AS) $(ASFLAGS) src/test.s -o bin/test.o
-	$(LD) $(LDFLAGS) bin/test.o -o bin/oma-test
-	@rm bin/test.o
-	@echo "Build concluído: bin/oma-test"
+build:
+	cargo build --release
+
+debug:
+	cargo build
+
+test:
+	cargo test
+
+run:
+	cargo run -- status
 
 clean:
-	rm -rf bin/
+	cargo clean
