@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use omatools::{theme, tools, workspaces};
+use omatools::{theme, tools, workspaces, zones};
 use std::process::Command as StdCommand;
 
 #[derive(Parser, Debug)]
@@ -20,6 +20,11 @@ struct Cli {
 enum Commands {
     /// Launch the native OmaTools Control Center (Omacom QtQuick/Material GUI)
     Gui,
+    /// FancyZones: Snap active window into custom grid zones (Split, Priority, Grid)
+    Zones {
+        #[command(subcommand)]
+        action: ZoneCommands,
+    },
     /// Workspaces: Capture, save, and restore multi-window layouts with 1 command
     Workspaces {
         #[command(subcommand)]
@@ -29,6 +34,10 @@ enum Commands {
     Picker,
     /// Text Extractor: Snipping tool with OCR extracting text straight to clipboard
     Ocr,
+    /// Always on Top: Toggle pin and float on the active window
+    Pin,
+    /// Paste Plain: Paste clipboard contents stripped of rich text formatting
+    PastePlain,
     /// Awake: Temporarily toggle or inhibit screen sleep and idle lock
     Awake,
     /// File Locksmith: Find which processes are locking or accessing a file
@@ -50,8 +59,35 @@ enum Commands {
     Snap,
     /// Omacalc: Native calculator tool
     Calc,
+    /// Shortcut Guide: Matrix of all PowerToys shortcuts implemented in OmaTools
+    Guide,
     /// Status: Full diagnostic overview of OmaTools and active Hyprland session
     Status,
+}
+
+#[derive(Subcommand, Debug)]
+enum ZoneCommands {
+    /// Snap active window into a layout zone (split2, priority, columns3, grid2x2, rows2, focus)
+    Snap {
+        /// Layout type: split2, priority, columns3, grid2x2, rows2, focus
+        #[arg(short, long, default_value = "split2")]
+        layout: String,
+
+        /// Zone index (0-based)
+        #[arg(short, long, default_value_t = 0)]
+        zone: usize,
+    },
+    /// Snap window to Left Half (PowerToys Win+Left equivalent)
+    Left,
+    /// Snap window to Right Half (PowerToys Win+Right equivalent)
+    Right,
+    /// Snap window to Center Priority Zone
+    Center,
+    /// Snap window to Grid Quadrant (0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight)
+    Grid {
+        #[arg(short, long, default_value_t = 0)]
+        quadrant: usize,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -82,6 +118,51 @@ async fn main() -> Result<()> {
     match cli.command {
         Some(Commands::Gui) => {
             launch_gui()?;
+        }
+        Some(Commands::Zones { action }) => match action {
+            ZoneCommands::Snap { layout, zone } => {
+                let l = match layout.to_lowercase().as_str() {
+                    "priority" => zones::ZoneLayout::PriorityGrid,
+                    "columns3" => zones::ZoneLayout::Columns3,
+                    "grid2x2" => zones::ZoneLayout::Grid2x2,
+                    "rows2" => zones::ZoneLayout::Rows2,
+                    "focus" => zones::ZoneLayout::Focus,
+                    _ => zones::ZoneLayout::Split2,
+                };
+                zones::snap_active_window(l, zone)?;
+                println!("📐 Janela ativa encaixada na zona {} do layout '{:?}'!", zone, l);
+            }
+            ZoneCommands::Left => {
+                zones::snap_active_window(zones::ZoneLayout::Split2, 0)?;
+                println!("📐 Janela ativa encaixada na metade esquerda (Split 2).");
+            }
+            ZoneCommands::Right => {
+                zones::snap_active_window(zones::ZoneLayout::Split2, 1)?;
+                println!("📐 Janela ativa encaixada na metade direita (Split 2).");
+            }
+            ZoneCommands::Center => {
+                zones::snap_active_window(zones::ZoneLayout::PriorityGrid, 1)?;
+                println!("📐 Janela ativa encaixada no centro prioritário.");
+            }
+            ZoneCommands::Grid { quadrant } => {
+                zones::snap_active_window(zones::ZoneLayout::Grid2x2, quadrant)?;
+                println!("📐 Janela ativa encaixada no quadrante {} do Grid 2x2.", quadrant);
+            }
+        },
+        Some(Commands::Pin) => {
+            let pinned = zones::toggle_always_on_top()?;
+            if pinned {
+                println!("📌 Janela ativa fixada no topo (Always on Top ATIVADO)!");
+            } else {
+                println!("📌 Janela ativa liberada do topo (Always on Top DESATIVADO).");
+            }
+        }
+        Some(Commands::PastePlain) => {
+            zones::paste_as_plain_text()?;
+            println!("📋 Texto puro colado da área de transferência!");
+        }
+        Some(Commands::Guide) => {
+            print_powertoys_guide()?;
         }
         Some(Commands::Workspaces { action }) => match action {
             WorkspaceCommands::Capture { workspace, name } => {
@@ -228,6 +309,24 @@ fn launch_gui() -> Result<()> {
                         "workspaces-restore" => {
                             let _ = workspaces::restore_workspace("current");
                         }
+                        "zones-left" => {
+                            let _ = zones::snap_active_window(zones::ZoneLayout::Split2, 0);
+                        }
+                        "zones-right" => {
+                            let _ = zones::snap_active_window(zones::ZoneLayout::Split2, 1);
+                        }
+                        "zones-center" => {
+                            let _ = zones::snap_active_window(zones::ZoneLayout::PriorityGrid, 1);
+                        }
+                        "zones-grid" => {
+                            let _ = zones::snap_active_window(zones::ZoneLayout::Grid2x2, 0);
+                        }
+                        "pin" => {
+                            let _ = zones::toggle_always_on_top();
+                        }
+                        "paste-plain" => {
+                            let _ = zones::paste_as_plain_text();
+                        }
                         _ => {}
                     }
                 }
@@ -332,5 +431,35 @@ fn print_status_dashboard() -> Result<()> {
         println!("   {} {} ({})", icon, name, path);
     }
 
+    Ok(())
+}
+
+fn print_powertoys_guide() -> Result<()> {
+    println!(r#"
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                  🗺️  GUIA DE ATALHOS POWERTOYS NO OMATOOLS                    ║
+║                        Compatibilidade Windows & Linux                         ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────┬──────────────────────┬──────────────────────────────────┐
+│ Ferramenta PowerToys │ Atalho Windows       │ Comando OmaTools / Hyprland      │
+├──────────────────────┼──────────────────────┼──────────────────────────────────┤
+│ PowerToys Run        │ Alt + Space          │ omatools gui (ou menu Omarchy)   │
+│ FancyZones (Snap L)  │ Win + Left           │ omatools zones left              │
+│ FancyZones (Snap R)  │ Win + Right          │ omatools zones right             │
+│ FancyZones (Center)  │ Win + Up / Priority  │ omatools zones center            │
+│ FancyZones (Grid)    │ Win + Shift + `      │ omatools zones snap -l grid2x2   │
+│ Always on Top (Pin)  │ Win + Ctrl + T       │ omatools pin                     │
+│ Color Picker         │ Win + Shift + C      │ omatools picker                  │
+│ Text Extractor (OCR) │ Win + Shift + T      │ omatools ocr                     │
+│ Workspaces (Presets) │ Win + Ctrl + `       │ omatools workspaces restore      │
+│ Paste as Plain Text  │ Win + Ctrl + Alt + V │ omatools paste-plain             │
+│ Screen Ruler         │ Win + Shift + M      │ omatools snap (ou slurp)         │
+│ Awake (No Sleep)     │ Bandeja / Toggle     │ omatools awake                   │
+│ File Locksmith       │ Botão Dir. / Menu    │ omatools locksmith <arquivo>     │
+└──────────────────────┴──────────────────────┴──────────────────────────────────┘
+
+Dica: Você pode acionar qualquer uma dessas funções via CLI ou pelo painel gráfico!
+"#);
     Ok(())
 }

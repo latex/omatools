@@ -188,6 +188,99 @@ ApplicationWindow {
             }
         }
 
+        // Section: FancyZones & Always on Top
+        Rectangle {
+            Layout.fillWidth: true
+            height: 120
+            radius: 14
+            color: raisedColor
+            border.color: cardBorderColor
+            border.width: 1
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 8
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text {
+                        text: "📐 FancyZones & Always on Top (Encaixe de Janelas)"
+                        font.pixelSize: 15
+                        font.bold: true
+                        color: themeForeground
+                    }
+                    Item { Layout.fillWidth: true }
+                    Text {
+                        text: "Win+Setas / Win+Ctrl+T"
+                        font.pixelSize: 11
+                        color: themeAccent
+                    }
+                }
+
+                Text {
+                    text: "Encaixe a janela ativa instantaneamente em grids de zonas ou fixe-a flutuando no topo."
+                    font.pixelSize: 12
+                    color: mutedTextColor
+                    Layout.fillWidth: true
+                }
+
+                RowLayout {
+                    spacing: 8
+                    Button {
+                        text: "◀️ Esq"
+                        onClicked: {
+                            win.triggerAction("zones-left");
+                            statusMessage.text = "Janela encaixada na metade esquerda!";
+                            statusTimer.restart();
+                        }
+                    }
+                    Button {
+                        text: "▶️ Dir"
+                        onClicked: {
+                            win.triggerAction("zones-right");
+                            statusMessage.text = "Janela encaixada na metade direita!";
+                            statusTimer.restart();
+                        }
+                    }
+                    Button {
+                        text: "🎯 Centro"
+                        onClicked: {
+                            win.triggerAction("zones-center");
+                            statusMessage.text = "Janela encaixada no centro prioritário!";
+                            statusTimer.restart();
+                        }
+                    }
+                    Button {
+                        text: "⊞ Grid"
+                        onClicked: {
+                            win.triggerAction("zones-grid");
+                            statusMessage.text = "Janela encaixada no Grid!";
+                            statusTimer.restart();
+                        }
+                    }
+                    Button {
+                        text: "📌 Fixar Topo"
+                        highlighted: true
+                        Material.accent: themeAccent
+                        onClicked: {
+                            win.triggerAction("pin");
+                            statusMessage.text = "Always on Top alternado!";
+                            statusTimer.restart();
+                        }
+                    }
+                    Button {
+                        text: "📋 Colar Texto"
+                        onClicked: {
+                            win.triggerAction("paste-plain");
+                            statusMessage.text = "Texto puro colado!";
+                            statusTimer.restart();
+                        }
+                    }
+                }
+            }
+        }
+
         Text {
             text: "Utilitários do Ecossistema Integrados"
             font.pixelSize: 14
