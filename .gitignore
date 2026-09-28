@@ -1,0 +1,6 @@
+# OmaTools .gitignore
+bin/
+obj/
+*.o
+*.out
+*.tmp
