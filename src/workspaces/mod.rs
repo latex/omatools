@@ -105,6 +105,48 @@ fn get_process_cmdline(pid: i32) -> Result<String> {
     Ok(parts.join(" "))
 }
 
+/// Load and restore a workspace preset
+pub fn restore_workspace(preset_name: &str) -> Result<WorkspacePreset> {
+    let dir = get_presets_dir()?;
+    let file_path = dir.join(format!("{}.json", preset_name));
+    if !file_path.exists() {
+        anyhow::bail!("Preset '{}' not found at {:?}", preset_name, file_path);
+    }
+
+    let json_data = fs::read_to_string(&file_path)?;
+    let preset: WorkspacePreset = serde_json::from_str(&json_data)?;
+
+    // Switch to target workspace
+    let _ = hyprland::send_command(&format!("dispatch workspace {}", preset.target_workspace));
+    std::thread::sleep(std::time::Duration::from_millis(150));
+
+    // Launch each application
+    for win in &preset.windows {
+        let launch_cmd = format!("dispatch exec [workspace {}] {}", preset.target_workspace, win.command);
+        let _ = hyprland::send_command(&launch_cmd);
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
+
+    Ok(preset)
+}
+
+/// List all saved preset names
+pub fn list_presets() -> Result<Vec<String>> {
+    let dir = get_presets_dir()?;
+    let mut names = Vec::new();
+    for entry in fs::read_dir(dir)?.flatten() {
+        if let Some(ext) = entry.path().extension() {
+            if ext == "json" {
+                if let Some(name) = entry.path().file_stem() {
+                    names.push(name.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+    names.sort();
+    Ok(names)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
