@@ -90,3 +90,13 @@ pub fn launch_calc() -> Result<()> {
         .context("Failed to launch omacalc")?;
     Ok(())
 }
+
+/// Flea (File manager)
+pub fn launch_flea(path: Option<&str>) -> Result<()> {
+    let mut cmd = Command::new("flea");
+    if let Some(p) = path {
+        cmd.arg(p);
+    }
+    cmd.spawn().context("Failed to launch flea")?;
+    Ok(())
+}

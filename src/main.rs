@@ -1,14 +1,15 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use omatools::{tools, workspaces};
+use omatools::{theme, tools, workspaces};
+use std::process::Command as StdCommand;
 
 #[derive(Parser, Debug)]
 #[command(
     name = "omatools",
     author = "Leandro Teixeira <leandro.tex@outlook.com>",
     version,
-    about = "A unified PowerToys productivity suite for Omarchy / Hyprland in Rust",
-    long_about = "OmaTools is a comprehensive desktop utility suite bringing the full Microsoft PowerToys experience to Omarchy/Linux under Wayland and Hyprland."
+    about = "A unified PowerToys productivity suite for Omarchy / Hyprland in Rust & QtQuick",
+    long_about = "OmaTools is a comprehensive desktop utility suite bringing the full Microsoft PowerToys experience to Omarchy/Linux under Wayland and Hyprland, following official Omacom design guidelines."
 )]
 struct Cli {
     #[command(subcommand)]
@@ -17,6 +18,8 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Launch the native OmaTools Control Center (Omacom QtQuick/Material GUI)
+    Gui,
     /// Workspaces: Capture, save, and restore multi-window layouts with 1 command
     Workspaces {
         #[command(subcommand)]
@@ -77,6 +80,9 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Some(Commands::Gui) => {
+            launch_gui()?;
+        }
         Some(Commands::Workspaces { action }) => match action {
             WorkspaceCommands::Capture { workspace, name } => {
                 println!("📸 Capturing workspace {} as preset '{}'...", workspace, name);
@@ -147,8 +153,122 @@ async fn main() -> Result<()> {
             print_status_dashboard()?;
         }
         None => {
-            print_welcome_dashboard()?;
+            // If in graphical desktop, default to opening the Omacom GUI!
+            if std::env::var("WAYLAND_DISPLAY").is_ok() || std::env::var("DISPLAY").is_ok() {
+                launch_gui()?;
+            } else {
+                print_welcome_dashboard()?;
+            }
         }
+    }
+
+    Ok(())
+}
+
+fn launch_gui() -> Result<()> {
+    let t = theme::load_current_theme().unwrap_or_default();
+    println!("🎨 Carregando tema ativo do Omarchy: modo={}, acento={}", t.mode, t.accent);
+
+    // Bind local micro IPC server on 127.0.0.1
+    let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+    let port = listener.local_addr()?.port();
+
+    std::thread::spawn(move || {
+        use std::io::{Read, Write};
+        for stream in listener.incoming() {
+            let mut stream = match stream {
+                Ok(s) => s,
+                Err(_) => break,
+            };
+
+            let mut buf = [0u8; 1024];
+            let n = match stream.read(&mut buf) {
+                Ok(n) if n > 0 => n,
+                _ => continue,
+            };
+
+            let req = String::from_utf8_lossy(&buf[..n]);
+            if let Some(first_line) = req.lines().next() {
+                let parts: Vec<&str> = first_line.split_whitespace().collect();
+                if parts.len() >= 2 {
+                    let path = parts[1];
+                    let action = path.trim_start_matches("/action/");
+                    match action {
+                        "picker" => {
+                            std::thread::spawn(|| {
+                                let _ = tools::run_picker();
+                            });
+                        }
+                        "ocr" => {
+                            std::thread::spawn(|| {
+                                let _ = tools::run_ocr();
+                            });
+                        }
+                        "awake" => {
+                            let _ = tools::run_awake();
+                        }
+                        "cut" => {
+                            let _ = tools::launch_cut(None);
+                        }
+                        "write" => {
+                            let _ = tools::launch_write(None);
+                        }
+                        "snap" => {
+                            let _ = tools::launch_snap();
+                        }
+                        "calc" => {
+                            let _ = tools::launch_calc();
+                        }
+                        "flea" => {
+                            let _ = tools::launch_flea(None);
+                        }
+                        "workspaces-save" => {
+                            let _ = workspaces::capture_workspace(1, "current");
+                        }
+                        "workspaces-restore" => {
+                            let _ = workspaces::restore_workspace("current");
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK";
+            let _ = stream.write_all(response.as_bytes());
+            let _ = stream.flush();
+        }
+    });
+
+    // Look for ui/Main.qml in standard locations
+    let possible_paths = [
+        format!("{}/Source/omatools/ui/Main.qml", std::env::var("HOME").unwrap_or_default()),
+        format!("{}/Projects/omatools/ui/Main.qml", std::env::var("HOME").unwrap_or_default()),
+        format!("{}/.local/share/omatools/ui/Main.qml", std::env::var("HOME").unwrap_or_default()),
+        "/usr/share/omatools/ui/Main.qml".to_string(),
+    ];
+
+    let qml_path = possible_paths
+        .iter()
+        .find(|p| std::path::Path::new(p).exists())
+        .map(|s| s.as_str())
+        .unwrap_or("ui/Main.qml");
+
+    let is_dark = t.mode == "dark";
+
+    let status = StdCommand::new("qml6")
+        .arg(qml_path)
+        .arg("--")
+        .arg(&t.background)
+        .arg(&t.foreground)
+        .arg(&t.accent)
+        .arg(&t.selection)
+        .arg(&t.muted)
+        .arg(if is_dark { "true" } else { "false" })
+        .arg(port.to_string())
+        .status()?;
+
+    if !status.success() {
+        print_welcome_dashboard()?;
     }
 
     Ok(())
@@ -164,6 +284,7 @@ fn print_welcome_dashboard() -> Result<()> {
 Utilize: omatools <COMANDO>
 
 📌 Módulos Integrados:
+  • gui         - Painel de controle visual nativo (Omacom QtQuick/Material)
   • workspaces  - Captura e restaura sessões completas de janelas
   • picker      - Conta-gotas de tela com zoom (Hex/RGB)
   • ocr         - Recorte de tela com extração de texto para clipboard

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=OmaTools
+GenericName=PowerToys Suite
+Comment=Unified productivity and utility suite for Omarchy & Hyprland
+Exec=omatools gui
+Icon=omatools
+Terminal=false
+Categories=Utility;System;
+Keywords=powertoys;tools;workspaces;picker;ocr;omarchy;hyprland;
+StartupWMClass=omatools
