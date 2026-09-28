@@ -6,27 +6,38 @@ import QtQuick.Window
 
 ApplicationWindow {
     id: win
-    width: 680
-    height: 740
-    minimumWidth: 480
-    minimumHeight: 520
+    width: 940
+    height: 640
+    minimumWidth: 800
+    minimumHeight: 540
     visible: true
     title: "OmaTools — PowerToys for Omarchy"
 
     // Theme properties passed by omatools launcher or fallback
-    property string themeBackground: "#050c0b"
-    property string themeForeground: "#cdf2e3"
-    property string themeAccent: "#5dffb0"
-    property string themeSelection: "#12352b"
-    property string themeMuted: "#6f9a8c"
+    property string themeBackground: "#2d353b"
+    property string themeForeground: "#d3c6aa"
+    property string themeAccent: "#7fbbb3"
+    property string themeSelection: "#3d484d"
+    property string themeMuted: "#859289"
     property bool darkMode: true
     property string apiPort: ""
 
-    function triggerAction(actionName) {
+    property int currentTab: 0
+
+    function triggerAction(actionName, feedbackMsg) {
+        if (feedbackMsg) {
+            notify(feedbackMsg);
+        }
         if (!apiPort) return;
         let xhr = new XMLHttpRequest();
         xhr.open("POST", "http://127.0.0.1:" + apiPort + "/action/" + actionName);
         xhr.send();
+    }
+
+    function notify(msg) {
+        statusMessage.text = msg;
+        statusIndicator.color = themeAccent;
+        statusTimer.restart();
     }
 
     Component.onCompleted: {
@@ -54,476 +65,1062 @@ ApplicationWindow {
             base.b + (tint.b - base.b) * amount, 1);
     }
 
-    readonly property color raisedColor: mixColors(Qt.color(themeBackground), Qt.color(themeForeground), 0.06)
-    readonly property color cardBorderColor: mixColors(Qt.color(themeBackground), Qt.color(themeForeground), 0.12)
-    readonly property color mutedTextColor: Qt.color(themeMuted)
+    readonly property color colBg: Qt.color(themeBackground)
+    readonly property color colFg: Qt.color(themeForeground)
+    readonly property color colAccent: Qt.color(themeAccent)
+    readonly property color colSidebarBg: mixColors(colBg, colFg, 0.03)
+    readonly property color colCardBg: mixColors(colBg, colFg, 0.06)
+    readonly property color colCardHover: mixColors(colBg, colFg, 0.10)
+    readonly property color colCardBorder: mixColors(colBg, colFg, 0.12)
+    readonly property color colSubtleBorder: mixColors(colBg, colFg, 0.08)
+    readonly property color colMutedText: Qt.color(themeMuted)
+    readonly property color colAccentSubtle: Qt.rgba(colAccent.r, colAccent.g, colAccent.b, 0.12)
+    readonly property color colAccentBorder: Qt.rgba(colAccent.r, colAccent.g, colAccent.b, 0.35)
 
     Material.theme: darkMode ? Material.Dark : Material.Light
     Material.accent: themeAccent
-    color: themeBackground
+    color: colBg
 
-    Shortcut {
-        sequence: "Ctrl+Q"
-        context: Qt.ApplicationShortcut
-        onActivated: Qt.quit()
-    }
+    // Global keyboard shortcuts (tui-ux-design guidelines)
+    Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
+    Shortcut { sequence: "Escape"; onActivated: Qt.quit() }
+    Shortcut { sequence: "1"; onActivated: currentTab = 0 }
+    Shortcut { sequence: "2"; onActivated: currentTab = 1 }
+    Shortcut { sequence: "3"; onActivated: currentTab = 2 }
+    Shortcut { sequence: "4"; onActivated: currentTab = 3 }
+    Shortcut { sequence: "5"; onActivated: currentTab = 4 }
+    Shortcut { sequence: "Up"; onActivated: if (currentTab > 0) currentTab-- }
+    Shortcut { sequence: "Down"; onActivated: if (currentTab < 4) currentTab++ }
 
-    Shortcut {
-        sequence: "Escape"
-        context: Qt.ApplicationShortcut
-        onActivated: Qt.quit()
-    }
-
-    ColumnLayout {
+    RowLayout {
         anchors.fill: parent
-        anchors.margins: 24
-        spacing: 20
+        spacing: 0
 
-        // Header (Omacom minimal aesthetic)
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 16
+        // =====================================================================
+        // SIDEBAR (MASTER PANEL)
+        // =====================================================================
+        Rectangle {
+            Layout.fillHeight: true
+            Layout.preferredWidth: 240
+            Layout.minimumWidth: 220
+            color: colSidebarBg
 
             Rectangle {
-                width: 48
-                height: 48
-                radius: 12
-                color: Qt.color(themeAccent)
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "🛠️"
-                    font.pixelSize: 24
-                }
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: colCardBorder
             }
 
             ColumnLayout {
-                spacing: 2
+                anchors.fill: parent
+                anchors.margins: 18
+                spacing: 16
+
+                // Brand Header
+                RowLayout {
+                    spacing: 12
+                    Layout.fillWidth: true
+
+                    Rectangle {
+                        width: 38
+                        height: 38
+                        radius: 10
+                        color: colAccentSubtle
+                        border.color: colAccentBorder
+                        border.width: 1
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "◈"
+                            font.pixelSize: 18
+                            font.bold: true
+                            color: colAccent
+                        }
+                    }
+
+                    ColumnLayout {
+                        spacing: 1
+                        Text {
+                            text: "OMATOOLS"
+                            font.pixelSize: 15
+                            font.bold: true
+                            font.letterSpacing: 1.2
+                            color: colFg
+                        }
+                        Text {
+                            text: "PowerToys for Omarchy"
+                            font.pixelSize: 11
+                            color: colMutedText
+                        }
+                    }
+                }
+
+                // Section Label
                 Text {
-                    text: "OmaTools"
-                    font.pixelSize: 22
+                    text: "MÓDULOS"
+                    font.pixelSize: 10
                     font.bold: true
-                    color: themeForeground
+                    font.letterSpacing: 1.5
+                    color: colMutedText
+                    Layout.topMargin: 8
+                    Layout.leftMargin: 4
                 }
-                Text {
-                    text: "Suíte de Produtividade & Utilitários para Omarchy"
-                    font.pixelSize: 13
-                    color: mutedTextColor
-                }
-            }
 
-            Item { Layout.fillWidth: true }
-
-            Label {
-                text: "v0.1.0 • Apache-2.0"
-                font.pixelSize: 11
-                color: mutedTextColor
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: cardBorderColor
-        }
-
-        // Section: Workspaces (Featured PowerToys Tool)
-        Rectangle {
-            Layout.fillWidth: true
-            height: 110
-            radius: 14
-            color: raisedColor
-            border.color: cardBorderColor
-            border.width: 1
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 14
-                spacing: 8
-
-                RowLayout {
+                // Navigation Items
+                ColumnLayout {
                     Layout.fillWidth: true
-                    Text {
-                        text: "🪟 Workspaces (Snapshot & Restauração de Sessão)"
-                        font.pixelSize: 15
-                        font.bold: true
-                        color: themeForeground
+                    spacing: 4
+
+                    NavItem {
+                        index: 0
+                        symbol: "◈"
+                        label: "Workspaces"
+                        sublabel: "Sessões & Snapshots"
+                        shortcutKey: "1"
                     }
-                    Item { Layout.fillWidth: true }
-                    Text {
-                        text: "Hyprland IPC"
-                        font.pixelSize: 11
-                        color: themeAccent
+                    NavItem {
+                        index: 1
+                        symbol: "⊞"
+                        label: "FancyZones"
+                        sublabel: "Grids & Encaixe"
+                        shortcutKey: "2"
+                    }
+                    NavItem {
+                        index: 2
+                        symbol: "✦"
+                        label: "Utilitários"
+                        sublabel: "Picker, OCR, Awake"
+                        shortcutKey: "3"
+                    }
+                    NavItem {
+                        index: 3
+                        symbol: "◆"
+                        label: "Apps Omacom"
+                        sublabel: "Suíte do Sistema"
+                        shortcutKey: "4"
+                    }
+                    NavItem {
+                        index: 4
+                        symbol: "⌨"
+                        label: "Guia de Atalhos"
+                        sublabel: "Matriz PowerToys"
+                        shortcutKey: "5"
                     }
                 }
 
-                Text {
-                    text: "Salve o arranjo de janelas atual da tela e restaure com um único comando ou atalho."
-                    font.pixelSize: 12
-                    color: mutedTextColor
+                Item { Layout.fillHeight: true }
+
+                // Sidebar Footer Status
+                Rectangle {
                     Layout.fillWidth: true
-                }
+                    height: 52
+                    radius: 8
+                    color: colCardBg
+                    border.color: colSubtleBorder
+                    border.width: 1
 
-                RowLayout {
-                    spacing: 10
-                    Button {
-                        text: "Salvar Workspace Atual"
-                        highlighted: true
-                        Material.accent: themeAccent
-                        onClicked: {
-                            win.triggerAction("workspaces-save");
-                            statusMessage.text = "Snapshot do workspace salvo com sucesso!";
-                            statusTimer.restart();
-                        }
-                    }
-                    Button {
-                        text: "Restaurar Preset"
-                        onClicked: {
-                            win.triggerAction("workspaces-restore");
-                            statusMessage.text = "Restaurando janelas do workspace...";
-                            statusTimer.restart();
-                        }
-                    }
-                }
-            }
-        }
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
 
-        // Section: FancyZones & Always on Top
-        Rectangle {
-            Layout.fillWidth: true
-            height: 120
-            radius: 14
-            color: raisedColor
-            border.color: cardBorderColor
-            border.width: 1
+                        Rectangle {
+                            width: 8
+                            height: 8
+                            radius: 4
+                            color: apiPort ? colAccent : colMutedText
+                        }
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 14
-                spacing: 8
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Text {
-                        text: "📐 FancyZones & Always on Top (Encaixe de Janelas)"
-                        font.pixelSize: 15
-                        font.bold: true
-                        color: themeForeground
-                    }
-                    Item { Layout.fillWidth: true }
-                    Text {
-                        text: "Win+Setas / Win+Ctrl+T"
-                        font.pixelSize: 11
-                        color: themeAccent
-                    }
-                }
-
-                Text {
-                    text: "Encaixe a janela ativa instantaneamente em grids de zonas ou fixe-a flutuando no topo."
-                    font.pixelSize: 12
-                    color: mutedTextColor
-                    Layout.fillWidth: true
-                }
-
-                RowLayout {
-                    spacing: 8
-                    Button {
-                        text: "◀️ Esq"
-                        onClicked: {
-                            win.triggerAction("zones-left");
-                            statusMessage.text = "Janela encaixada na metade esquerda!";
-                            statusTimer.restart();
-                        }
-                    }
-                    Button {
-                        text: "▶️ Dir"
-                        onClicked: {
-                            win.triggerAction("zones-right");
-                            statusMessage.text = "Janela encaixada na metade direita!";
-                            statusTimer.restart();
-                        }
-                    }
-                    Button {
-                        text: "🎯 Centro"
-                        onClicked: {
-                            win.triggerAction("zones-center");
-                            statusMessage.text = "Janela encaixada no centro prioritário!";
-                            statusTimer.restart();
-                        }
-                    }
-                    Button {
-                        text: "⊞ Grid"
-                        onClicked: {
-                            win.triggerAction("zones-grid");
-                            statusMessage.text = "Janela encaixada no Grid!";
-                            statusTimer.restart();
-                        }
-                    }
-                    Button {
-                        text: "📌 Fixar Topo"
-                        highlighted: true
-                        Material.accent: themeAccent
-                        onClicked: {
-                            win.triggerAction("pin");
-                            statusMessage.text = "Always on Top alternado!";
-                            statusTimer.restart();
-                        }
-                    }
-                    Button {
-                        text: "📋 Colar Texto"
-                        onClicked: {
-                            win.triggerAction("paste-plain");
-                            statusMessage.text = "Texto puro colado!";
-                            statusTimer.restart();
+                        ColumnLayout {
+                            spacing: 1
+                            Text {
+                                text: apiPort ? "IPC Ativo (Porta " + apiPort + ")" : "IPC Standalone"
+                                font.pixelSize: 11
+                                font.bold: true
+                                color: colFg
+                            }
+                            Text {
+                                text: "Hyprland Compositor"
+                                font.pixelSize: 10
+                                color: colMutedText
+                            }
                         }
                     }
                 }
             }
         }
 
-        Text {
-            text: "Utilitários do Ecossistema Integrados"
-            font.pixelSize: 14
-            font.bold: true
-            color: themeForeground
-            Layout.topMargin: 4
-        }
-
-        // Grid of PowerToys Tools
-        ScrollView {
+        // =====================================================================
+        // DETAIL PANEL (CONTENT AREA)
+        // =====================================================================
+        ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
+            spacing: 0
 
-            GridLayout {
-                width: parent.width
-                columns: 2
-                columnSpacing: 14
-                rowSpacing: 14
+            // Header Bar
+            Rectangle {
+                Layout.fillWidth: true
+                height: 56
+                color: colBg
 
-                // Color Picker
-                ToolCard {
-                    iconText: "🎯"
-                    toolTitle: "Color Picker"
-                    toolDesc: "Conta-gotas de tela com zoom e cópia instantânea (HEX/RGB)."
-                    buttonLabel: "Capturar Cor"
-                    themeForeground: win.themeForeground
-                    raisedColor: win.raisedColor
-                    cardBorderColor: win.cardBorderColor
-                    mutedTextColor: win.mutedTextColor
-                    accentColor: win.themeAccent
-                    onTriggered: {
-                        win.triggerAction("picker");
-                        statusMessage.text = "Acionando seletor de cores...";
-                        statusTimer.restart();
-                    }
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: colCardBorder
                 }
 
-                // Text Extractor
-                ToolCard {
-                    iconText: "✂️"
-                    toolTitle: "Text Extractor (OCR)"
-                    toolDesc: "Recorta uma área da tela e extrai o texto para o clipboard."
-                    buttonLabel: "Extrair Texto"
-                    themeForeground: win.themeForeground
-                    raisedColor: win.raisedColor
-                    cardBorderColor: win.cardBorderColor
-                    mutedTextColor: win.mutedTextColor
-                    accentColor: win.themeAccent
-                    onTriggered: {
-                        win.triggerAction("ocr");
-                        statusMessage.text = "Selecione a área para OCR...";
-                        statusTimer.restart();
-                    }
-                }
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 24
+                    anchors.rightMargin: 24
 
-                // Omacut
-                ToolCard {
-                    iconText: "🎬"
-                    toolTitle: "Omacut"
-                    toolDesc: "Cortador e trimmer de vídeo ultra-rápido com FFmpeg."
-                    buttonLabel: "Abrir Omacut"
-                    themeForeground: win.themeForeground
-                    raisedColor: win.raisedColor
-                    cardBorderColor: win.cardBorderColor
-                    mutedTextColor: win.mutedTextColor
-                    accentColor: win.themeAccent
-                    onTriggered: {
-                        win.triggerAction("cut");
-                        statusMessage.text = "Abrindo Omacut...";
-                        statusTimer.restart();
+                    ColumnLayout {
+                        spacing: 2
+                        Text {
+                            text: currentTab === 0 ? "Workspaces — Gerenciador de Sessão Multi-Janela" :
+                                  currentTab === 1 ? "FancyZones — Posicionamento Magnético e Divisão de Tela" :
+                                  currentTab === 2 ? "Utilitários Core — Ferramentas de Produtividade" :
+                                  currentTab === 3 ? "Ecossistema Omacom — Aplicações Integradas" :
+                                                     "Guia de Atalhos — Mapeamento PowerToys ➔ Omarchy"
+                            font.pixelSize: 15
+                            font.bold: true
+                            color: colFg
+                        }
+                        Text {
+                            text: currentTab === 0 ? "Hyprland IPC • Captura e restauração de arranjos com zero latência" :
+                                  currentTab === 1 ? "Encaixe em zonas pré-definidas, centralização e fixação Always on Top" :
+                                  currentTab === 2 ? "Ações rápidas no compositor: seletor de cores, extração OCR e controle idle" :
+                                  currentTab === 3 ? "Aplicações nativas ultra-leves desenhadas para o desktop Omarchy" :
+                                                     "Equivalência oficial entre atalhos do Windows PowerToys e comandos Linux"
+                            font.pixelSize: 11
+                            color: colMutedText
+                        }
                     }
-                }
 
-                // Omawrite
-                ToolCard {
-                    iconText: "✍️"
-                    toolTitle: "Omawrite"
-                    toolDesc: "Editor Markdown minimalista sem distrações para escrita."
-                    buttonLabel: "Abrir Omawrite"
-                    themeForeground: win.themeForeground
-                    raisedColor: win.raisedColor
-                    cardBorderColor: win.cardBorderColor
-                    mutedTextColor: win.mutedTextColor
-                    accentColor: win.themeAccent
-                    onTriggered: {
-                        win.triggerAction("write");
-                        statusMessage.text = "Abrindo Omawrite...";
-                        statusTimer.restart();
-                    }
-                }
+                    Item { Layout.fillWidth: true }
 
-                // Omasnap
-                ToolCard {
-                    iconText: "📸"
-                    toolTitle: "Omasnap"
-                    toolDesc: "Screenshot nativo Wayland com editor de anotações e setas."
-                    buttonLabel: "Abrir Omasnap"
-                    themeForeground: win.themeForeground
-                    raisedColor: win.raisedColor
-                    cardBorderColor: win.cardBorderColor
-                    mutedTextColor: win.mutedTextColor
-                    accentColor: win.themeAccent
-                    onTriggered: {
-                        win.triggerAction("snap");
-                        statusMessage.text = "Abrindo Omasnap...";
-                        statusTimer.restart();
-                    }
-                }
-
-                // Omacalc
-                ToolCard {
-                    iconText: "🧮"
-                    toolTitle: "Omacalc"
-                    toolDesc: "Calculadora simples e elegante integrada ao tema."
-                    buttonLabel: "Abrir Omacalc"
-                    themeForeground: win.themeForeground
-                    raisedColor: win.raisedColor
-                    cardBorderColor: win.cardBorderColor
-                    mutedTextColor: win.mutedTextColor
-                    accentColor: win.themeAccent
-                    onTriggered: {
-                        win.triggerAction("calc");
-                        statusMessage.text = "Abrindo Omacalc...";
-                        statusTimer.restart();
-                    }
-                }
-
-                // Awake
-                ToolCard {
-                    iconText: "☕"
-                    toolTitle: "Awake"
-                    toolDesc: "Inibe temporariamente o bloqueio e suspensão da tela."
-                    buttonLabel: "Alternar Awake"
-                    themeForeground: win.themeForeground
-                    raisedColor: win.raisedColor
-                    cardBorderColor: win.cardBorderColor
-                    mutedTextColor: win.mutedTextColor
-                    accentColor: win.themeAccent
-                    onTriggered: {
-                        win.triggerAction("awake");
-                        statusMessage.text = "Inibição de suspensão alternada!";
-                        statusTimer.restart();
-                    }
-                }
-
-                // Flea
-                ToolCard {
-                    iconText: "📁"
-                    toolTitle: "Flea"
-                    toolDesc: "Gerenciador de arquivos rápido e orientado a teclado."
-                    buttonLabel: "Abrir Flea"
-                    themeForeground: win.themeForeground
-                    raisedColor: win.raisedColor
-                    cardBorderColor: win.cardBorderColor
-                    mutedTextColor: win.mutedTextColor
-                    accentColor: win.themeAccent
-                    onTriggered: {
-                        win.triggerAction("flea");
-                        statusMessage.text = "Abrindo Flea...";
-                        statusTimer.restart();
+                    Button {
+                        text: "✕ Fechar"
+                        flat: true
+                        font.pixelSize: 12
+                        onClicked: Qt.quit()
                     }
                 }
             }
-        }
 
-        // Status bar
-        RowLayout {
-            Layout.fillWidth: true
-            Text {
-                id: statusMessage
-                text: "Pressione Ctrl+Q ou Esc para fechar"
-                font.pixelSize: 12
-                color: mutedTextColor
+            // Scrollable Content View
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                Item {
+                    width: parent.width
+                    implicitHeight: contentStack.implicitHeight + 48
+
+                    ColumnLayout {
+                        id: contentStack
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 24
+                        spacing: 20
+
+                        // -----------------------------------------------------
+                        // TAB 0: WORKSPACES
+                        // -----------------------------------------------------
+                        ColumnLayout {
+                            visible: currentTab === 0
+                            Layout.fillWidth: true
+                            spacing: 16
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 14
+
+                                // Card Snapshot
+                                ActionCard {
+                                    Layout.fillWidth: true
+                                    symbol: "◈"
+                                    title: "Capturar Workspace Atual"
+                                    badge: "Snapshot j/clients"
+                                    description: "Varre todas as janelas do workspace ativo no Hyprland, registrando posições exatas, dimensões e classes de execução."
+                                    primaryButtonText: "Salvar Snapshot"
+                                    primaryHighlighted: true
+                                    onPrimaryClicked: {
+                                        win.triggerAction("workspaces-save", "Snapshot do workspace capturado com sucesso!");
+                                    }
+                                }
+
+                                // Card Restore
+                                ActionCard {
+                                    Layout.fillWidth: true
+                                    symbol: "↺"
+                                    title: "Restaurar Preset Padrão"
+                                    badge: "dispatch exec"
+                                    description: "Restaura o arranjo de aplicativos salvo anteriormente, recriando as instâncias nos respectivos workspaces."
+                                    primaryButtonText: "Restaurar Preset"
+                                    primaryHighlighted: false
+                                    onPrimaryClicked: {
+                                        win.triggerAction("workspaces-restore", "Iniciando restauração das janelas do workspace...");
+                                    }
+                                }
+                            }
+
+                            // Info & Quick CLI box
+                            Rectangle {
+                                Layout.fillWidth: true
+                                radius: 10
+                                color: colCardBg
+                                border.color: colCardBorder
+                                border.width: 1
+                                implicitHeight: infoCol.implicitHeight + 24
+
+                                ColumnLayout {
+                                    id: infoCol
+                                    anchors.fill: parent
+                                    anchors.margins: 14
+                                    spacing: 8
+
+                                    Text {
+                                        text: "COMANDOS DE LINHA DE COMANDO EQUIVALENTES"
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                        font.letterSpacing: 1.0
+                                        color: colAccent
+                                    }
+
+                                    Text {
+                                        text: "• Capturar workspace atual:   omatools workspaces capture -w 1 -n meu-preset\n• Restaurar preset nomeado:   omatools workspaces restore meu-preset\n• Listar todos os presets:    omatools workspaces list"
+                                        font.pixelSize: 12
+                                        font.family: "monospace"
+                                        color: colFg
+                                    }
+                                }
+                            }
+                        }
+
+                        // -----------------------------------------------------
+                        // TAB 1: FANCYZONES & WINDOW MANAGEMENT
+                        // -----------------------------------------------------
+                        ColumnLayout {
+                            visible: currentTab === 1
+                            Layout.fillWidth: true
+                            spacing: 16
+
+                            Text {
+                                text: "ZONAS RÁPIDAS DE ENCAIXE (FANCYZONES)"
+                                font.pixelSize: 11
+                                font.bold: true
+                                font.letterSpacing: 1.0
+                                color: colAccent
+                            }
+
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 2
+                                columnSpacing: 14
+                                rowSpacing: 14
+
+                                ZoneTile {
+                                    Layout.fillWidth: true
+                                    symbol: "◀"
+                                    name: "Metade Esquerda"
+                                    detail: "Divide a tela na vertical e ancora a janela na porção esquerda."
+                                    shortcutHint: "Win + Left"
+                                    onTriggered: win.triggerAction("zones-left", "Janela encaixada na metade esquerda");
+                                }
+
+                                ZoneTile {
+                                    Layout.fillWidth: true
+                                    symbol: "▶"
+                                    name: "Metade Direita"
+                                    detail: "Divide a tela na vertical e ancora a janela na porção direita."
+                                    shortcutHint: "Win + Right"
+                                    onTriggered: win.triggerAction("zones-right", "Janela encaixada na metade direita");
+                                }
+
+                                ZoneTile {
+                                    Layout.fillWidth: true
+                                    symbol: "▣"
+                                    name: "Centro Prioritário"
+                                    detail: "Centraliza a janela ativa com proporções de foco prioritário."
+                                    shortcutHint: "Win + Up"
+                                    onTriggered: win.triggerAction("zones-center", "Janela centralizada com foco prioritário");
+                                }
+
+                                ZoneTile {
+                                    Layout.fillWidth: true
+                                    symbol: "⊞"
+                                    name: "Grid Quadrante"
+                                    detail: "Posiciona no grid 2x2 para ambientes multi-tarefa densos."
+                                    shortcutHint: "Win + Shift + `"
+                                    onTriggered: win.triggerAction("zones-grid", "Janela posicionada no Grid");
+                                }
+                            }
+
+                            Text {
+                                text: "AÇÕES ESPECIAIS DE JANELA"
+                                font.pixelSize: 11
+                                font.bold: true
+                                font.letterSpacing: 1.0
+                                color: colAccent
+                                Layout.topMargin: 8
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 14
+
+                                ActionCard {
+                                    Layout.fillWidth: true
+                                    symbol: "📌"
+                                    title: "Always on Top"
+                                    badge: "Win + Ctrl + T"
+                                    description: "Alterna o estado flutuante e fixa a janela no topo sobre todas as outras."
+                                    primaryButtonText: "Alternar Fixação"
+                                    primaryHighlighted: true
+                                    onPrimaryClicked: win.triggerAction("pin", "Always on Top alternado na janela ativa");
+                                }
+
+                                ActionCard {
+                                    Layout.fillWidth: true
+                                    symbol: "📄"
+                                    title: "Colar como Texto Puro"
+                                    badge: "Win + Ctrl + Alt + V"
+                                    description: "Sanitiza o conteúdo da área de transferência removendo HTML e formatação rica."
+                                    primaryButtonText: "Colar Texto Puro"
+                                    primaryHighlighted: false
+                                    onPrimaryClicked: win.triggerAction("paste-plain", "Texto puro colado da área de transferência");
+                                }
+                            }
+                        }
+
+                        // -----------------------------------------------------
+                        // TAB 2: UTILITIES (PICKER, OCR, AWAKE, LOCKSMITH)
+                        // -----------------------------------------------------
+                        ColumnLayout {
+                            visible: currentTab === 2
+                            Layout.fillWidth: true
+                            spacing: 16
+
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 2
+                                columnSpacing: 14
+                                rowSpacing: 14
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "✦"
+                                    title: "Color Picker"
+                                    subtitle: "Win + Shift + C"
+                                    desc: "Conta-gotas de tela com lente de aumento sob o cursor e cópia em HEX/RGB."
+                                    btnText: "Capturar Cor"
+                                    onAction: win.triggerAction("picker", "Seletor de cor ativado. Clique no pixel desejado.");
+                                }
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "✂"
+                                    title: "Text Extractor (OCR)"
+                                    subtitle: "Win + Shift + T"
+                                    desc: "Recorte retangular na tela com reconhecimento ótico de caracteres instantâneo."
+                                    btnText: "Extrair Texto"
+                                    onAction: win.triggerAction("ocr", "Selecione a área da tela para extração OCR.");
+                                }
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "⚡"
+                                    title: "Awake"
+                                    subtitle: "Inibidor de Suspensão"
+                                    desc: "Inibe temporariamente o bloqueio de tela, descanso e idle timeout no Hyprland."
+                                    btnText: "Alternar Awake"
+                                    onAction: win.triggerAction("awake", "Estado de inibição de suspensão alternado!");
+                                }
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "⚲"
+                                    title: "File Locksmith"
+                                    subtitle: "Inspeção de Processos"
+                                    desc: "Descobre quais processos ou serviços do Linux estão bloqueando o arquivo."
+                                    btnText: "Info de Uso"
+                                    onAction: win.notify("Use: omatools locksmith <caminho_do_arquivo> no terminal.");
+                                }
+                            }
+                        }
+
+                        // -----------------------------------------------------
+                        // TAB 3: OMACOM APPS
+                        // -----------------------------------------------------
+                        ColumnLayout {
+                            visible: currentTab === 3
+                            Layout.fillWidth: true
+                            spacing: 16
+
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 2
+                                columnSpacing: 14
+                                rowSpacing: 14
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "◆"
+                                    title: "Omasnap"
+                                    subtitle: "Screenshot & Anotações"
+                                    desc: "Captura de tela nativa Wayland com editor vetorial de anotações e setas."
+                                    btnText: "Abrir Omasnap"
+                                    onAction: win.triggerAction("snap", "Abrindo Omasnap...");
+                                }
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "◆"
+                                    title: "Omacut"
+                                    subtitle: "Cortador de Vídeo"
+                                    desc: "Trimmer de vídeo ultra-rápido com processamento sem perda via FFmpeg."
+                                    btnText: "Abrir Omacut"
+                                    onAction: win.triggerAction("cut", "Abrindo Omacut...");
+                                }
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "◆"
+                                    title: "Omawrite"
+                                    subtitle: "Editor Markdown"
+                                    desc: "Editor de notas e textos sem distrações, integrado ao tema Omarchy."
+                                    btnText: "Abrir Omawrite"
+                                    onAction: win.triggerAction("write", "Abrindo Omawrite...");
+                                }
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "◆"
+                                    title: "Omacalc"
+                                    subtitle: "Calculadora Minimalista"
+                                    desc: "Calculadora de alta precisão e ergonomia visual integrada ao ecossistema."
+                                    btnText: "Abrir Omacalc"
+                                    onAction: win.triggerAction("calc", "Abrindo Omacalc...");
+                                }
+
+                                UtilCard {
+                                    Layout.fillWidth: true
+                                    symbol: "◆"
+                                    title: "Flea"
+                                    subtitle: "Gerenciador de Arquivos"
+                                    desc: "Navegação rápida em diretórios, orientada totalmente a teclado."
+                                    btnText: "Abrir Flea"
+                                    onAction: win.triggerAction("flea", "Abrindo Flea...");
+                                }
+                            }
+                        }
+
+                        // -----------------------------------------------------
+                        // TAB 4: SHORTCUT GUIDE
+                        // -----------------------------------------------------
+                        ColumnLayout {
+                            visible: currentTab === 4
+                            Layout.fillWidth: true
+                            spacing: 14
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                radius: 10
+                                color: colCardBg
+                                border.color: colCardBorder
+                                border.width: 1
+                                implicitHeight: guideCol.implicitHeight + 28
+
+                                ColumnLayout {
+                                    id: guideCol
+                                    anchors.fill: parent
+                                    anchors.margins: 16
+                                    spacing: 10
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text {
+                                            text: "FERRAMENTA"
+                                            font.pixelSize: 10
+                                            font.bold: true
+                                            color: colMutedText
+                                            Layout.preferredWidth: 160
+                                        }
+                                        Text {
+                                            text: "ATALHO WINDOWS"
+                                            font.pixelSize: 10
+                                            font.bold: true
+                                            color: colMutedText
+                                            Layout.preferredWidth: 180
+                                        }
+                                        Text {
+                                            text: "EQUIVALENTE OMATOOLS (LINUX)"
+                                            font.pixelSize: 10
+                                            font.bold: true
+                                            color: colMutedText
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    Rectangle { Layout.fillWidth: true; height: 1; color: colSubtleBorder }
+
+                                    GuideRow { tool: "PowerToys Run"; winKey: "Alt + Space"; omaCmd: "omatools gui" }
+                                    GuideRow { tool: "FancyZones (Esq)"; winKey: "Win + Left"; omaCmd: "omatools zones left" }
+                                    GuideRow { tool: "FancyZones (Dir)"; winKey: "Win + Right"; omaCmd: "omatools zones right" }
+                                    GuideRow { tool: "FancyZones (Centro)"; winKey: "Win + Up"; omaCmd: "omatools zones center" }
+                                    GuideRow { tool: "FancyZones (Grid)"; winKey: "Win + Shift + `"; omaCmd: "omatools zones snap -l grid2x2" }
+                                    GuideRow { tool: "Always on Top"; winKey: "Win + Ctrl + T"; omaCmd: "omatools pin" }
+                                    GuideRow { tool: "Color Picker"; winKey: "Win + Shift + C"; omaCmd: "omatools picker" }
+                                    GuideRow { tool: "Text Extractor"; winKey: "Win + Shift + T"; omaCmd: "omatools ocr" }
+                                    GuideRow { tool: "Workspaces"; winKey: "Win + Ctrl + `"; omaCmd: "omatools workspaces restore" }
+                                    GuideRow { tool: "Paste Plain Text"; winKey: "Win + Ctrl + Alt + V"; omaCmd: "omatools paste-plain" }
+                                    GuideRow { tool: "Screen Ruler"; winKey: "Win + Shift + M"; omaCmd: "omatools snap" }
+                                    GuideRow { tool: "Awake"; winKey: "Bandeja / Menu"; omaCmd: "omatools awake" }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            Item { Layout.fillWidth: true }
-            Text {
-                text: "Omarchy Quattro"
-                font.pixelSize: 11
-                color: mutedTextColor
+
+            // =================================================================
+            // BOTTOM STATUS BAR
+            // =================================================================
+            Rectangle {
+                Layout.fillWidth: true
+                height: 38
+                color: colSidebarBg
+
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: colCardBorder
+                }
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 20
+                    anchors.rightMargin: 20
+
+                    Rectangle {
+                        id: statusIndicator
+                        width: 7
+                        height: 7
+                        radius: 3.5
+                        color: colAccent
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                    }
+
+                    Text {
+                        id: statusMessage
+                        text: "Pronto • Selecione uma ferramenta ou navegue com [1-5]"
+                        font.pixelSize: 11
+                        color: colMutedText
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    RowLayout {
+                        spacing: 12
+
+                        Text {
+                            text: "[ 1-5 ] Seções"
+                            font.pixelSize: 10
+                            font.family: "monospace"
+                            color: colMutedText
+                        }
+                        Text {
+                            text: "[ ↑↓ ] Navegar"
+                            font.pixelSize: 10
+                            font.family: "monospace"
+                            color: colMutedText
+                        }
+                        Text {
+                            text: "[ Esc ] Sair"
+                            font.pixelSize: 10
+                            font.family: "monospace"
+                            color: colMutedText
+                        }
+                        Text {
+                            text: "• Omarchy Quattro"
+                            font.pixelSize: 10
+                            color: colMutedText
+                        }
+                    }
+                }
             }
         }
     }
 
     Timer {
         id: statusTimer
-        interval: 3000
-        onTriggered: statusMessage.text = "Pressione Ctrl+Q ou Esc para fechar"
+        interval: 4000
+        onTriggered: {
+            statusMessage.text = "Pronto • Selecione uma ferramenta ou navegue com [1-5]";
+            statusIndicator.color = colAccent;
+        }
     }
 
-    component ToolCard: Rectangle {
-        property string iconText: "📦"
-        property string toolTitle: ""
-        property string toolDesc: ""
-        property string buttonLabel: "Executar"
-        property color themeForeground: "#ffffff"
-        property color raisedColor: "#202020"
-        property color cardBorderColor: "#333333"
-        property color mutedTextColor: "#888888"
-        property color accentColor: "#5dffb0"
-        signal triggered()
+    // =========================================================================
+    // REUSABLE SUBCOMPONENTS
+    // =========================================================================
+
+    component NavItem: Rectangle {
+        property int index: 0
+        property string symbol: "◈"
+        property string label: ""
+        property string sublabel: ""
+        property string shortcutKey: "1"
+
+        readonly property bool isActive: win.currentTab === index
 
         Layout.fillWidth: true
-        height: 130
-        radius: 12
-        color: raisedColor
-        border.color: cardBorderColor
+        height: 48
+        radius: 8
+        color: isActive ? colCardHover : (mouseNav.containsMouse ? colCardBg : "transparent")
+        border.color: isActive ? colAccentBorder : "transparent"
         border.width: 1
 
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 12
-            spacing: 6
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.margins: 6
+            width: 3
+            radius: 1.5
+            color: colAccent
+            visible: isActive
+        }
 
-            RowLayout {
-                spacing: 8
+        MouseArea {
+            id: mouseNav
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: win.currentTab = index
+        }
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 14
+            anchors.rightMargin: 12
+            spacing: 10
+
+            Text {
+                text: symbol
+                font.pixelSize: 14
+                color: isActive ? colAccent : colMutedText
+            }
+
+            ColumnLayout {
+                spacing: 1
+                Layout.fillWidth: true
                 Text {
-                    text: iconText
-                    font.pixelSize: 16
+                    text: label
+                    font.pixelSize: 13
+                    font.bold: isActive
+                    color: isActive ? colFg : colMutedText
                 }
                 Text {
-                    text: toolTitle
+                    text: sublabel
+                    font.pixelSize: 10
+                    color: colMutedText
+                }
+            }
+
+            Rectangle {
+                width: 18
+                height: 18
+                radius: 4
+                color: isActive ? colAccentSubtle : "transparent"
+                border.color: isActive ? colAccentBorder : colSubtleBorder
+                border.width: 1
+
+                Text {
+                    anchors.centerIn: parent
+                    text: shortcutKey
+                    font.pixelSize: 10
+                    font.family: "monospace"
+                    font.bold: true
+                    color: isActive ? colAccent : colMutedText
+                }
+            }
+        }
+    }
+
+    component ActionCard: Rectangle {
+        property string symbol: "◈"
+        property string title: ""
+        property string badge: ""
+        property string description: ""
+        property string primaryButtonText: "Executar"
+        property bool primaryHighlighted: true
+        signal primaryClicked()
+
+        radius: 10
+        color: colCardBg
+        border.color: colCardBorder
+        border.width: 1
+        implicitHeight: cardCol.implicitHeight + 28
+
+        ColumnLayout {
+            id: cardCol
+            anchors.fill: parent
+            anchors.margins: 14
+            spacing: 10
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Text {
+                    text: symbol
+                    font.pixelSize: 14
+                    color: colAccent
+                }
+
+                Text {
+                    text: title
                     font.pixelSize: 14
                     font.bold: true
-                    color: themeForeground
+                    color: colFg
                     Layout.fillWidth: true
+                }
+
+                Rectangle {
+                    radius: 4
+                    color: colAccentSubtle
+                    border.color: colAccentBorder
+                    border.width: 1
+                    implicitWidth: badgeText.implicitWidth + 8
+                    implicitHeight: 20
+
+                    Text {
+                        id: badgeText
+                        anchors.centerIn: parent
+                        text: badge
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: colAccent
+                    }
                 }
             }
 
             Text {
-                text: toolDesc
+                text: description
                 font.pixelSize: 11
-                color: mutedTextColor
+                color: colMutedText
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
-                Layout.fillHeight: true
             }
 
             Button {
-                text: buttonLabel
+                text: primaryButtonText
+                highlighted: primaryHighlighted
+                Material.accent: themeAccent
+                font.pixelSize: 12
                 Layout.alignment: Qt.AlignRight
-                Material.accent: accentColor
-                onClicked: triggered()
+                onClicked: primaryClicked()
+            }
+        }
+    }
+
+    component ZoneTile: Rectangle {
+        property string symbol: "◀"
+        property string name: ""
+        property string detail: ""
+        property string shortcutHint: ""
+        signal triggered()
+
+        radius: 10
+        color: tileMouse.containsMouse ? colCardHover : colCardBg
+        border.color: tileMouse.containsMouse ? colAccentBorder : colCardBorder
+        border.width: 1
+        implicitHeight: tileCol.implicitHeight + 24
+
+        MouseArea {
+            id: tileMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: triggered()
+        }
+
+        ColumnLayout {
+            id: tileCol
+            anchors.fill: parent
+            anchors.margins: 14
+            spacing: 8
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Rectangle {
+                    width: 26
+                    height: 26
+                    radius: 6
+                    color: colAccentSubtle
+                    border.color: colAccentBorder
+                    border.width: 1
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: symbol
+                        font.pixelSize: 13
+                        color: colAccent
+                    }
+                }
+
+                Text {
+                    text: name
+                    font.pixelSize: 13
+                    font.bold: true
+                    color: colFg
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: shortcutHint
+                    font.pixelSize: 10
+                    font.family: "monospace"
+                    color: colMutedText
+                }
+            }
+
+            Text {
+                text: detail
+                font.pixelSize: 11
+                color: colMutedText
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+        }
+    }
+
+    component UtilCard: Rectangle {
+        property string symbol: "✦"
+        property string title: ""
+        property string subtitle: ""
+        property string desc: ""
+        property string btnText: "Executar"
+        signal action()
+
+        radius: 10
+        color: colCardBg
+        border.color: colCardBorder
+        border.width: 1
+        implicitHeight: utilCol.implicitHeight + 28
+
+        ColumnLayout {
+            id: utilCol
+            anchors.fill: parent
+            anchors.margins: 14
+            spacing: 10
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Text {
+                    text: symbol
+                    font.pixelSize: 14
+                    color: colAccent
+                }
+
+                Text {
+                    text: title
+                    font.pixelSize: 14
+                    font.bold: true
+                    color: colFg
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: subtitle
+                    font.pixelSize: 10
+                    font.family: "monospace"
+                    color: colMutedText
+                }
+            }
+
+            Text {
+                text: desc
+                font.pixelSize: 11
+                color: colMutedText
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            Button {
+                text: btnText
+                font.pixelSize: 12
+                Material.accent: themeAccent
+                Layout.alignment: Qt.AlignRight
+                onClicked: action()
+            }
+        }
+    }
+
+    component GuideRow: RowLayout {
+        property string tool: ""
+        property string winKey: ""
+        property string omaCmd: ""
+
+        Layout.fillWidth: true
+        spacing: 8
+
+        Text {
+            text: tool
+            font.pixelSize: 12
+            font.bold: true
+            color: colFg
+            Layout.preferredWidth: 160
+        }
+
+        Rectangle {
+            Layout.preferredWidth: 180
+            height: 22
+            radius: 4
+            color: colSidebarBg
+            border.color: colSubtleBorder
+            border.width: 1
+
+            Text {
+                anchors.centerIn: parent
+                text: winKey
+                font.pixelSize: 10
+                font.family: "monospace"
+                color: colAccent
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 22
+            radius: 4
+            color: colSidebarBg
+            border.color: colSubtleBorder
+            border.width: 1
+
+            Text {
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                text: omaCmd
+                font.pixelSize: 11
+                font.family: "monospace"
+                color: colFg
             }
         }
     }
