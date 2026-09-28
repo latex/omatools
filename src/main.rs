@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use omatools::{theme, tools, workspaces, zones};
+use omatools::{ia, theme, tools, workspaces, zones};
 use std::process::Command as StdCommand;
 
 #[derive(Parser, Debug)]
@@ -59,10 +59,36 @@ enum Commands {
     Snap,
     /// Omacalc: Native calculator tool
     Calc,
+    /// IA & Agentes: Lançador e atalhos rápidos para a suíte de agentes especialistas
+    Ia {
+        #[command(subcommand)]
+        action: Option<IaCommands>,
+    },
     /// Shortcut Guide: Matrix of all PowerToys shortcuts implemented in OmaTools
     Guide,
     /// Status: Full diagnostic overview of OmaTools and active Hyprland session
     Status,
+}
+
+#[derive(Subcommand, Debug)]
+enum IaCommands {
+    /// Listar todos os agentes especialistas e seus modelos locais
+    List,
+    /// Abrir sessão no terminal com o agente selecionado
+    Spawn {
+        /// ID do agente (eng-ia, rust-app, qa-app, devops-app, dba-app, iam-app, ui-app)
+        #[arg(default_value = "eng-ia")]
+        agent: String,
+    },
+    /// Abrir sessão interativa com Hermes Agent
+    Hermes,
+    /// Abrir sessão com Antigravity CLI
+    Agy,
+    /// Transformar texto do clipboard usando IA local (Advanced AI Paste)
+    Transform {
+        /// Instrução para a IA (ex: 'resumir', 'traduzir para inglês', 'explicar código')
+        instruction: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -230,6 +256,40 @@ async fn main() -> Result<()> {
             println!("🧮 Abrindo Omacalc (Calculadora)...");
             tools::launch_calc()?;
         }
+        Some(Commands::Ia { action }) => match action {
+            Some(IaCommands::List) | None => {
+                println!(r#"
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                   🧠 OMATOOLS IA — AGENTES ESPECIALISTAS                       ║
+║                  Modelos Locais Ollama & Orquestração Rápida                   ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+"#);
+                for a in ia::get_available_agents() {
+                    println!(" • [{}] {} ({})", a.id, a.name, a.shortcut);
+                    println!("   Papel: {}", a.role);
+                    println!("   Modelo Local: {}\n", a.model);
+                }
+                println!("Para abrir um agente no terminal: omatools ia spawn <agente>");
+                println!("Para transformar clipboard:       omatools ia transform \"<instrucao>\"");
+            }
+            Some(IaCommands::Spawn { agent }) => {
+                println!("🚀 Abrindo terminal com o agente '{}'...", agent);
+                ia::spawn_agent_terminal(&agent)?;
+            }
+            Some(IaCommands::Hermes) => {
+                println!("🚀 Abrindo terminal com Hermes Agent...");
+                ia::spawn_hermes()?;
+            }
+            Some(IaCommands::Agy) => {
+                println!("🚀 Abrindo terminal com Antigravity CLI...");
+                ia::spawn_agy()?;
+            }
+            Some(IaCommands::Transform { instruction }) => {
+                println!("🤖 Processando texto da clipboard com IA local ('{}')...", instruction);
+                let result = ia::transform_clipboard(&instruction)?;
+                println!("✅ Resultado copiado para a área de transferência!\n\n{}", result);
+            }
+        },
         Some(Commands::Status) => {
             print_status_dashboard()?;
         }
@@ -326,6 +386,27 @@ fn launch_gui() -> Result<()> {
                         }
                         "paste-plain" => {
                             let _ = zones::paste_as_plain_text();
+                        }
+                        s if s.starts_with("ia-spawn-") => {
+                            let agent_id = s.trim_start_matches("ia-spawn-");
+                            if agent_id == "hermes" {
+                                let _ = ia::spawn_hermes();
+                            } else if agent_id == "agy" {
+                                let _ = ia::spawn_agy();
+                            } else {
+                                let _ = ia::spawn_agent_terminal(agent_id);
+                            }
+                        }
+                        s if s.starts_with("ia-transform-") => {
+                            let task_name = s.trim_start_matches("ia-transform-");
+                            let task = match task_name {
+                                "summary" => "Resuma o texto a seguir de forma concisa em tópicos.",
+                                "translate" => "Traduza o texto a seguir fielmente para o inglês.",
+                                "explain" => "Explique o código ou conceito a seguir de forma didática e técnica.",
+                                "test" => "Gere uma suíte completa de testes unitários para o código a seguir em Rust.",
+                                other => other,
+                            };
+                            let _ = ia::transform_clipboard(task);
                         }
                         _ => {}
                     }

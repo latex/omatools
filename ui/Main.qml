@@ -89,8 +89,9 @@ ApplicationWindow {
     Shortcut { sequence: "3"; onActivated: currentTab = 2 }
     Shortcut { sequence: "4"; onActivated: currentTab = 3 }
     Shortcut { sequence: "5"; onActivated: currentTab = 4 }
+    Shortcut { sequence: "6"; onActivated: currentTab = 5 }
     Shortcut { sequence: "Up"; onActivated: if (currentTab > 0) currentTab-- }
-    Shortcut { sequence: "Down"; onActivated: if (currentTab < 4) currentTab++ }
+    Shortcut { sequence: "Down"; onActivated: if (currentTab < 5) currentTab++ }
 
     RowLayout {
         anchors.fill: parent
@@ -208,6 +209,13 @@ ApplicationWindow {
                         sublabel: "Matriz PowerToys"
                         shortcutKey: "5"
                     }
+                    NavItem {
+                        index: 5
+                        symbol: "λ"
+                        label: "Agentes IA"
+                        sublabel: "Modelos & Agentes"
+                        shortcutKey: "6"
+                    }
                 }
 
                 Item { Layout.fillHeight: true }
@@ -286,7 +294,8 @@ ApplicationWindow {
                                   currentTab === 1 ? "FancyZones — Posicionamento Magnético e Divisão de Tela" :
                                   currentTab === 2 ? "Utilitários Core — Ferramentas de Produtividade" :
                                   currentTab === 3 ? "Ecossistema Omacom — Aplicações Integradas" :
-                                                     "Guia de Atalhos — Mapeamento PowerToys ➔ Omarchy"
+                                  currentTab === 4 ? "Guia de Atalhos — Mapeamento PowerToys ➔ Omarchy" :
+                                                     "Agentes IA & LLM — Engenharia & Automações Locais"
                             font.pixelSize: 15
                             font.bold: true
                             color: colFg
@@ -296,7 +305,8 @@ ApplicationWindow {
                                   currentTab === 1 ? "Encaixe em zonas pré-definidas, centralização e fixação Always on Top" :
                                   currentTab === 2 ? "Ações rápidas no compositor: seletor de cores, extração OCR e controle idle" :
                                   currentTab === 3 ? "Aplicações nativas ultra-leves desenhadas para o desktop Omarchy" :
-                                                     "Equivalência oficial entre atalhos do Windows PowerToys e comandos Linux"
+                                  currentTab === 4 ? "Equivalência oficial entre atalhos do Windows PowerToys e comandos Linux" :
+                                                     "Atalhos para agentes especializados e transformações inteligentes com IA local"
                             font.pixelSize: 11
                             color: colMutedText
                         }
@@ -687,6 +697,174 @@ ApplicationWindow {
                                 }
                             }
                         }
+
+                        // -----------------------------------------------------
+                        // TAB 5: AGENTES IA & LLM
+                        // -----------------------------------------------------
+                        ColumnLayout {
+                            visible: currentTab === 5
+                            Layout.fillWidth: true
+                            spacing: 18
+
+                            // Section: AI Paste & Clipboard Transformations
+                            Rectangle {
+                                Layout.fillWidth: true
+                                radius: 10
+                                color: colCardBg
+                                border.color: colCardBorder
+                                border.width: 1
+                                implicitHeight: aiPasteCol.implicitHeight + 28
+
+                                ColumnLayout {
+                                    id: aiPasteCol
+                                    anchors.fill: parent
+                                    anchors.margins: 14
+                                    spacing: 10
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text {
+                                            text: "λ Transformação de Clipboard com IA Local (Advanced AI Paste)"
+                                            font.pixelSize: 13
+                                            font.bold: true
+                                            color: colFg
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: "Ollama / llama-server"
+                                            font.pixelSize: 10
+                                            color: colAccent
+                                        }
+                                    }
+
+                                    Text {
+                                        text: "Transforme instantaneamente o conteúdo copiado na área de transferência com modelos locais de alta performance."
+                                        font.pixelSize: 11
+                                        color: colMutedText
+                                        wrapMode: Text.WordWrap
+                                        Layout.fillWidth: true
+                                    }
+
+                                    RowLayout {
+                                        spacing: 8
+                                        Button {
+                                            text: "✦ Resumir Clipboard"
+                                            highlighted: true
+                                            Material.accent: themeAccent
+                                            onClicked: win.triggerAction("ia-transform-summary", "Resumindo texto da clipboard com IA local...")
+                                        }
+                                        Button {
+                                            text: "✦ Traduzir p/ Inglês"
+                                            onClicked: win.triggerAction("ia-transform-translate", "Traduzindo texto da clipboard para inglês...")
+                                        }
+                                        Button {
+                                            text: "✦ Explicar Código"
+                                            onClicked: win.triggerAction("ia-transform-explain", "Gerando explicação técnica do código copiado...")
+                                        }
+                                        Button {
+                                            text: "✦ Gerar Teste Rust"
+                                            onClicked: win.triggerAction("ia-transform-test", "Gerando suíte de testes unitários para o código...")
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text {
+                                text: "AGENTES ESPECIALISTAS INTEGRADOS"
+                                font.pixelSize: 10
+                                font.bold: true
+                                font.letterSpacing: 1.5
+                                color: colMutedText
+                            }
+
+                            // Grid of Agents
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 2
+                                columnSpacing: 14
+                                rowSpacing: 14
+
+                                AgentCard {
+                                    agentId: "eng-ia"
+                                    symbol: "◈"
+                                    name: "Engenheiro de IA & Kaizen"
+                                    role: "MCP, RAG, Memória & Otimização de Modelos"
+                                    model: "qwen3.6:27b"
+                                    shortcutText: "Alt + 1"
+                                    onSpawnClicked: win.triggerAction("ia-spawn-eng-ia", "Abrindo terminal com agente eng-ia...")
+                                }
+
+                                AgentCard {
+                                    agentId: "rust-app"
+                                    symbol: "⚙"
+                                    name: "Engenheiro Rust 2024"
+                                    role: "Sistemas de Baixo Nível, IPC & Concorrência"
+                                    model: "qwen3.6:27b"
+                                    shortcutText: "Alt + 2"
+                                    onSpawnClicked: win.triggerAction("ia-spawn-rust-app", "Abrindo terminal com agente rust-app...")
+                                }
+
+                                AgentCard {
+                                    agentId: "qa-app"
+                                    symbol: "✓"
+                                    name: "Auditor de QA 10/10"
+                                    role: "Pirâmide de Testes, Regressão & Validação"
+                                    model: "gemma4:latest"
+                                    shortcutText: "Alt + 3"
+                                    onSpawnClicked: win.triggerAction("ia-spawn-qa-app", "Abrindo terminal com agente qa-app...")
+                                }
+
+                                AgentCard {
+                                    agentId: "devops-app"
+                                    symbol: "⎘"
+                                    name: "DevOps & Automações"
+                                    role: "Pipelines CI/CD, Docker, Builds & Deploy"
+                                    model: "qwen3:8b"
+                                    shortcutText: "Alt + 4"
+                                    onSpawnClicked: win.triggerAction("ia-spawn-devops-app", "Abrindo terminal com agente devops-app...")
+                                }
+
+                                AgentCard {
+                                    agentId: "dba-app"
+                                    symbol: "⛁"
+                                    name: "DBA PostgreSQL & pgvector"
+                                    role: "Modelagem Relacional, Índices & Tuning"
+                                    model: "qwen3.6:27b"
+                                    shortcutText: "Alt + 5"
+                                    onSpawnClicked: win.triggerAction("ia-spawn-dba-app", "Abrindo terminal com agente dba-app...")
+                                }
+
+                                AgentCard {
+                                    agentId: "iam-app"
+                                    symbol: "🔒"
+                                    name: "IAM, Segredos & Segurança"
+                                    role: "Zero Plaintext Secrets & Cofre Pass GPG"
+                                    model: "qwen3:8b"
+                                    shortcutText: "Alt + 6"
+                                    onSpawnClicked: win.triggerAction("ia-spawn-iam-app", "Abrindo terminal com agente iam-app...")
+                                }
+
+                                AgentCard {
+                                    agentId: "ui-app"
+                                    symbol: "🎨"
+                                    name: "UI/UX & Frontend Designer"
+                                    role: "TUI Ratatui, QtQuick/QML & Acessibilidade"
+                                    model: "gemma4:latest"
+                                    shortcutText: "Alt + 7"
+                                    onSpawnClicked: win.triggerAction("ia-spawn-ui-app", "Abrindo terminal com agente ui-app...")
+                                }
+
+                                AgentCard {
+                                    agentId: "hermes"
+                                    symbol: "⚡"
+                                    name: "Hermes Agent"
+                                    role: "Sessão Interativa Direta Hermes"
+                                    model: "default local"
+                                    shortcutText: "CLI"
+                                    onSpawnClicked: win.triggerAction("ia-spawn-hermes", "Abrindo terminal com Hermes Agent...")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -723,7 +901,7 @@ ApplicationWindow {
 
                     Text {
                         id: statusMessage
-                        text: "Pronto • Selecione uma ferramenta ou navegue com [1-5]"
+                        text: "Pronto • Selecione uma ferramenta ou navegue com [1-6]"
                         font.pixelSize: 11
                         color: colMutedText
                     }
@@ -734,7 +912,7 @@ ApplicationWindow {
                         spacing: 12
 
                         Text {
-                            text: "[ 1-5 ] Seções"
+                            text: "[ 1-6 ] Seções"
                             font.pixelSize: 10
                             font.family: "monospace"
                             color: colMutedText
@@ -1121,6 +1299,96 @@ ApplicationWindow {
                 font.pixelSize: 11
                 font.family: "monospace"
                 color: colFg
+            }
+        }
+    }
+
+    component AgentCard: Rectangle {
+        property string agentId: ""
+        property string symbol: "◈"
+        property string name: ""
+        property string role: ""
+        property string model: "default"
+        property string shortcutText: ""
+        signal spawnClicked()
+
+        radius: 10
+        color: colCardBg
+        border.color: colCardBorder
+        border.width: 1
+        implicitHeight: agentCol.implicitHeight + 28
+
+        ColumnLayout {
+            id: agentCol
+            anchors.fill: parent
+            anchors.margins: 14
+            spacing: 8
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Text {
+                    text: symbol
+                    font.pixelSize: 14
+                    color: colAccent
+                }
+
+                Text {
+                    text: name
+                    font.pixelSize: 13
+                    font.bold: true
+                    color: colFg
+                    Layout.fillWidth: true
+                }
+
+                Rectangle {
+                    radius: 4
+                    color: colAccentSubtle
+                    border.color: colAccentBorder
+                    border.width: 1
+                    implicitWidth: scText.implicitWidth + 8
+                    implicitHeight: 18
+
+                    Text {
+                        id: scText
+                        anchors.centerIn: parent
+                        text: shortcutText
+                        font.pixelSize: 9
+                        font.family: "monospace"
+                        font.bold: true
+                        color: colAccent
+                    }
+                }
+            }
+
+            Text {
+                text: role
+                font.pixelSize: 11
+                color: colMutedText
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Text {
+                    text: "Modelo: " + model
+                    font.pixelSize: 10
+                    font.family: "monospace"
+                    color: colMutedText
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    text: "◈ Abrir Terminal"
+                    font.pixelSize: 11
+                    Material.accent: themeAccent
+                    onClicked: spawnClicked()
+                }
             }
         }
     }
